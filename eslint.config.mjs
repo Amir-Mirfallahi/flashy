@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
+    "android/app/src/main/assets/**",
     "build/**",
     "next-env.d.ts",
   ]),
