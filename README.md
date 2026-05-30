@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flashy
+
+Flashy is a mobile-first Leitner flashcard app built with Next.js App Router and Capacitor. It is designed to feel like a small native Android study app: safe-area aware layout, bottom tabs, touch-first interactions, local-only progress, and a static export that Capacitor can package into an APK.
+
+## Features
+
+- Study dashboard with due-card count and Leitner box progress matrix
+- Double-sided 3D flashcards with tap-to-flip review flow
+- Strict Leitner scheduling across boxes 1-5
+- Swipe left to forget and swipe right to remember
+- Vocabulary browser with search, tag filters, word-type filters, and box status
+- JSON importer for deck data through paste or file upload
+- LocalStorage persistence with no backend required
+- Static Next.js export configured for Capacitor Android
+
+## Tech Stack
+
+- Next.js 16 App Router
+- React 19
+- Tailwind CSS 4
+- Capacitor 8 for Android packaging
+- LocalStorage for deck and review state
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run the development server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open the app at:
 
-## Learn More
+```text
+http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Useful Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm lint
+pnpm build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`pnpm build` creates the static export in `out/`, which is the web directory used by Capacitor.
 
-## Deploy on Vercel
+## Android Build
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Build the static web app:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm build
+```
+
+Sync the exported app into Android:
+
+```bash
+pnpm exec cap sync android
+```
+
+Open the Android project:
+
+```bash
+pnpm exec cap open android
+```
+
+From Android Studio, build or run the APK on an emulator/device.
+
+## Import Format
+
+Flashy imports a JSON payload with deck metadata and flashcards:
+
+```json
+{
+  "meta": {
+    "source": "Édito French Notebook",
+    "exported": "2026-05-29",
+    "total_cards": 198,
+    "units_covered": ["Unit 6", "Unit 7"]
+  },
+  "flashcards": [
+    {
+      "id": "vocab_001",
+      "type": "vocabulary",
+      "front": "pressé(e)",
+      "back": "in a hurry",
+      "word_type": "adjective",
+      "example": "Je suis pressée de commencer.",
+      "example_translation": "I am in a hurry to start.",
+      "tags": ["french", "edito", "adjective"]
+    }
+  ]
+}
+```
+
+Required flashcard fields are `id`, `front`, and `back`. Optional fields such as `word_type`, `example`, `example_translation`, and `tags` improve filtering and review context.
+
+## Leitner Rules
+
+New cards start in Box 1 and are due immediately.
+
+| Box | Review Interval |
+| --- | --- |
+| 1 | 1 day |
+| 2 | 2 days |
+| 3 | 4 days |
+| 4 | 9 days |
+| 5 | 16 days |
+
+When a card is remembered, it moves up one box, up to Box 5. When a card is forgotten, it returns to Box 1. Each review recalculates `nextReviewDate` from the card's new box.
+
+## Local Data
+
+Flashy stores imported cards and progress in LocalStorage under:
+
+```text
+flashy.deck.v1
+```
+
+The Settings screen can reset this data. There is no remote backend, account system, or cloud sync.
+
+## Project Structure
+
+```text
+app/
+  components/
+    AppFrame.tsx
+    BottomNav.tsx
+  lib/
+    flashcards.tsx
+  cards/page.tsx
+  settings/page.tsx
+  layout.tsx
+  page.tsx
+```
+
+## Capacitor Notes
+
+`next.config.ts` uses `output: "export"` and `images.unoptimized: true` so the app can be served as static files from Capacitor's Android WebView. `capacitor.config.ts` points `webDir` at `out`.
