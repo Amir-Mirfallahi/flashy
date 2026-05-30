@@ -5,14 +5,27 @@ import { AppFrame } from "./components/AppFrame";
 import { TrackedFlashcard, useFlashcards } from "./lib/flashcards";
 
 export default function Home() {
-  const { meta, cards, dueCards, boxCounts, answerCard, initialized } =
-    useFlashcards();
+  const {
+    meta,
+    cards,
+    dueCards,
+    studyCards,
+    remainingToday,
+    boxCounts,
+    answerCard,
+    initialized,
+    settings,
+  } = useFlashcards();
   const [flipped, setFlipped] = useState(false);
   const touchStart = useRef<number | null>(null);
-  const currentCard = dueCards[0];
+  const currentCard = studyCards[0];
 
   const dueLabel = initialized ? dueCards.length : 0;
   const totalCards = cards.length;
+  const completedToday = Math.min(
+    settings.reviewedToday,
+    settings.dailyCardLimit,
+  );
 
   const handleAnswer = (card: TrackedFlashcard, remembered: boolean) => {
     answerCard(card.id, remembered);
@@ -40,10 +53,12 @@ export default function Home() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-bold">Deck Progress</p>
-            <p className="text-xs text-slate-300">{totalCards} cards stored</p>
+            <p className="text-xs text-slate-300">
+              {completedToday}/{settings.dailyCardLimit} studied today
+            </p>
           </div>
           <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-bold">
-            5 boxes
+            {remainingToday} left
           </span>
         </div>
         <div className="grid grid-cols-5 gap-2">
@@ -91,7 +106,10 @@ export default function Home() {
           }}
         />
       ) : (
-        <AllCaughtUp />
+        <AllCaughtUp
+          hasDueCards={dueCards.length > 0}
+          dailyCardLimit={settings.dailyCardLimit}
+        />
       )}
     </AppFrame>
   );
@@ -217,7 +235,13 @@ function BadgeRow({
   );
 }
 
-function AllCaughtUp() {
+function AllCaughtUp({
+  hasDueCards,
+  dailyCardLimit,
+}: {
+  hasDueCards: boolean;
+  dailyCardLimit: number;
+}) {
   return (
     <section className="flex flex-1 items-center justify-center">
       <div className="w-full rounded-[2rem] bg-white p-8 text-center shadow-xl shadow-slate-200 ring-1 ring-slate-200">
@@ -237,10 +261,13 @@ function AllCaughtUp() {
             ))}
           </div>
         </div>
-        <h2 className="text-3xl font-black text-slate-950">All caught up!</h2>
+        <h2 className="text-3xl font-black text-slate-950">
+          {hasDueCards ? "Daily goal complete!" : "All caught up!"}
+        </h2>
         <p className="mt-3 text-base leading-7 text-slate-500">
-          Nothing is due right now. Your future self has a little more room to
-          breathe.
+          {hasDueCards
+            ? `You reviewed ${dailyCardLimit} cards today. Raise the daily limit in Settings when you want a bigger session.`
+            : "Nothing is due right now. Your future self has a little more room to breathe."}
         </p>
       </div>
     </section>

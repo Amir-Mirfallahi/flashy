@@ -5,7 +5,15 @@ import { AppFrame } from "../components/AppFrame";
 import { useFlashcards } from "../lib/flashcards";
 
 export default function SettingsPage() {
-  const { meta, cards, importDeck, resetProgress } = useFlashcards();
+  const {
+    meta,
+    cards,
+    importDeck,
+    resetProgress,
+    settings,
+    remainingToday,
+    setDailyCardLimit,
+  } = useFlashcards();
   const [jsonText, setJsonText] = useState("");
   const [status, setStatus] = useState("");
 
@@ -70,6 +78,62 @@ export default function SettingsPage() {
               {meta.exported ?? "Local"}
             </p>
             <p className="text-xs font-bold text-slate-500">exported</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-5 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 className="text-xl font-black text-slate-950">Daily Study</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+          Choose how many due cards Flashy should serve in one day.
+        </p>
+
+        <label className="mt-4 block">
+          <span className="mb-2 block text-sm font-bold text-slate-500">
+            Cards per day
+          </span>
+          <input
+            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-2xl font-black text-slate-950 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+            inputMode="numeric"
+            max={500}
+            min={1}
+            onChange={(event) =>
+              setDailyCardLimit(Number(event.target.value))
+            }
+            type="number"
+            value={settings.dailyCardLimit}
+          />
+        </label>
+
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {[10, 20, 50, 100].map((limit) => (
+            <button
+              className={`min-h-11 rounded-2xl px-2 text-sm font-black transition active:scale-[0.97] ${
+                settings.dailyCardLimit === limit
+                  ? "bg-slate-950 text-white"
+                  : "bg-slate-100 text-slate-700 active:bg-slate-200"
+              }`}
+              key={limit}
+              onClick={() => setDailyCardLimit(limit)}
+              type="button"
+            >
+              {limit}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-indigo-50 p-3">
+            <p className="text-2xl font-black text-indigo-700">
+              {settings.reviewedToday}
+            </p>
+            <p className="text-xs font-bold text-indigo-500">done today</p>
+          </div>
+          <div className="rounded-2xl bg-emerald-50 p-3">
+            <p className="text-2xl font-black text-emerald-700">
+              {remainingToday}
+            </p>
+            <p className="text-xs font-bold text-emerald-600">left today</p>
           </div>
         </div>
       </section>

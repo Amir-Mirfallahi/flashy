@@ -38,23 +38,34 @@ type ImportPayload = {
   flashcards?: Flashcard[];
 };
 
+type StudySettings = {
+  dailyCardLimit: number;
+  reviewedToday: number;
+  reviewDate: string;
+};
+
 type FlashcardState = {
   meta: DeckMeta;
   cards: TrackedFlashcard[];
+  settings: StudySettings;
 };
 
 type FlashcardContextValue = FlashcardState & {
   initialized: boolean;
   dueCards: TrackedFlashcard[];
+  studyCards: TrackedFlashcard[];
+  remainingToday: number;
   boxCounts: number[];
   allTags: string[];
   allWordTypes: string[];
   answerCard: (cardId: string, remembered: boolean) => void;
   importDeck: (payload: ImportPayload) => { imported: number; updated: number };
   resetProgress: () => void;
+  setDailyCardLimit: (limit: number) => void;
 };
 
 const STORAGE_KEY = "flashy.deck.v1";
+const DEFAULT_DAILY_CARD_LIMIT = 20;
 const REVIEW_INTERVALS: Record<number, number> = {
   1: 1,
   2: 2,
@@ -122,6 +133,11 @@ const demoCards: Flashcard[] = [
 const defaultState: FlashcardState = {
   meta: demoMeta,
   cards: seedCards(demoCards),
+  settings: {
+    dailyCardLimit: DEFAULT_DAILY_CARD_LIMIT,
+    reviewedToday: 0,
+    reviewDate: todayKey(),
+  },
 };
 
 const FlashcardContext = createContext<FlashcardContextValue | null>(null);
@@ -138,6 +154,14 @@ function addDaysIso(box: number, from = new Date()) {
 
 function clampBox(box: number) {
   return Math.min(5, Math.max(1, box));
+}
+
+function clampDailyLimit(limit: number) {
+  return Math.min(500, Math.max(1, Math.round(limit || 1)));
+}
+
+function todayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
 }
 
 function seedCards(cards: Flashcard[]): TrackedFlashcard[] {
@@ -161,6 +185,8 @@ function loadState(): FlashcardState {
     if (!stored) return defaultState;
     const parsed = JSON.parse(stored) as FlashcardState;
     if (!Array.isArray(parsed.cards)) return defaultState;
+    const reviewDate = todayKey();
+    const savedSettings = parsed.settings ?? defaultState.settings;
     return {
       meta: parsed.meta ?? demoMeta,
       cards: parsed.cards.map((card) => ({
@@ -170,6 +196,16 @@ function loadState(): FlashcardState {
         nextReviewDate: card.nextReviewDate ?? nowIso(),
         lastReviewed: card.lastReviewed ?? null,
       })),
+      settings: {
+        dailyCardLimit: clampDailyLimit(
+          savedSettings.dailyCardLimit ?? DEFAULT_DAILY_CARD_LIMIT,
+        ),
+        reviewedToday:
+          savedSettings.reviewDate === reviewDate
+            ? Math.max(0, savedSettings.reviewedToday ?? 0)
+            : 0,
+        reviewDate,
+      },
     };
   } catch {
     return defaultState;
@@ -220,6 +256,20 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
       );
   }, [currentTime, state.cards]);
 
+  const remainingToday = useMemo(
+    () =>
+      Math.max(
+        0,
+        state.settings.dailyCardLimit - state.settings.reviewedToday,
+      ),
+    [state.settings.dailyCardLimit, state.settings.reviewedToday],
+  );
+
+  const studyCards = useMemo(
+    () => dueCards.slice(0, remainingToday),
+    [dueCards, remainingToday],
+  );
+
   const boxCounts = useMemo(
     () =>
       [1, 2, 3, 4, 5].map(
@@ -245,6 +295,11 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
   const answerCard = useCallback((cardId: string, remembered: boolean) => {
     setState((current) => ({
       ...current,
+      settings: {
+        ...current.settings,
+        reviewedToday: current.settings.reviewedToday + 1,
+        reviewDate: todayKey(),
+      },
       cards: current.cards.map((card) => {
         if (card.id !== cardId) return card;
         const reviewedAt = new Date();
@@ -256,6 +311,17 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
           nextReviewDate: addDaysIso(nextBox, reviewedAt),
         };
       }),
+    }));
+    setCurrentTime(Date.now());
+  }, []);
+
+  const setDailyCardLimit = useCallback((limit: number) => {
+    setState((current) => ({
+      ...current,
+      settings: {
+        ...current.settings,
+        dailyCardLimit: clampDailyLimit(limit),
+      },
     }));
   }, []);
 
@@ -291,10 +357,11 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
         units_covered: payload.meta?.units_covered,
       },
       cards: Array.from(existing.values()),
+      settings: state.settings,
     });
 
     return { imported, updated };
-  }, [state.cards, state.meta.source]);
+  }, [state.cards, state.meta.source, state.settings]);
 
   const resetProgress = useCallback(() => {
     window.localStorage.removeItem(STORAGE_KEY);
@@ -306,23 +373,29 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
       ...state,
       initialized,
       dueCards,
+      studyCards,
+      remainingToday,
       boxCounts,
       allTags,
       allWordTypes,
       answerCard,
       importDeck,
       resetProgress,
+      setDailyCardLimit,
     }),
     [
       state,
       initialized,
       dueCards,
+      studyCards,
+      remainingToday,
       boxCounts,
       allTags,
       allWordTypes,
       answerCard,
       importDeck,
       resetProgress,
+      setDailyCardLimit,
     ],
   );
 
