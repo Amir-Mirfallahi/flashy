@@ -9,6 +9,7 @@ export default function SettingsPage() {
     meta,
     cards,
     importDeck,
+    reverseAllCards,
     resetProgress,
     settings,
     remainingToday,
@@ -177,6 +178,28 @@ export default function SettingsPage() {
             {status}
           </p>
         ) : null}
+      </section>
+
+      <section className="mb-5 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 className="text-xl font-black text-slate-950">Card Management</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+          Tools to manage your flashcard deck.
+        </p>
+        <button
+          className="mt-4 min-h-14 w-full rounded-3xl bg-indigo-600 px-4 text-base font-black text-white shadow-lg shadow-indigo-600/20 transition active:scale-[0.98] active:bg-indigo-700"
+          onClick={() => {
+            const confirmed = window.confirm(
+              "Reverse all cards? This will swap the front and back of every card in your deck.",
+            );
+            if (confirmed) {
+              reverseAllCards();
+              window.alert("All cards have been reversed!");
+            }
+          }}
+          type="button"
+        >
+          Reverse All Cards
+        </button>
       </section>
 
       <section className="rounded-[2rem] border border-rose-200 bg-rose-50 p-5">

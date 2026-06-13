@@ -9,6 +9,7 @@ export default function CardsPage() {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("all");
   const [wordType, setWordType] = useState("all");
+  const [boxFilter, setBoxFilter] = useState<string | number>("all");
 
   const filteredCards = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -19,9 +20,10 @@ export default function CardsPage() {
         card.back.toLowerCase().includes(needle);
       const matchesTag = tag === "all" || card.tags?.includes(tag);
       const matchesType = wordType === "all" || card.word_type === wordType;
-      return matchesQuery && matchesTag && matchesType;
+      const matchesBox = boxFilter === "all" || card.box === boxFilter;
+      return matchesQuery && matchesTag && matchesType && matchesBox;
     });
-  }, [cards, query, tag, wordType]);
+  }, [cards, query, tag, wordType, boxFilter]);
 
   return (
     <AppFrame>
@@ -43,7 +45,7 @@ export default function CardsPage() {
           />
         </label>
 
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-3 gap-3">
           <select
             className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500"
             onChange={(event) => setWordType(event.target.value)}
@@ -66,6 +68,19 @@ export default function CardsPage() {
             {allTags.map((item) => (
               <option key={item} value={item}>
                 {item}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500"
+            onChange={(event) => setBoxFilter(event.target.value === "all" ? "all" : Number(event.target.value))}
+            value={boxFilter}
+          >
+            <option value="all">All boxes</option>
+            {[1, 2, 3, 4, 5].map((box) => (
+              <option key={box} value={box}>
+                Box {box}
               </option>
             ))}
           </select>
@@ -92,14 +107,20 @@ export default function CardsPage() {
                   {card.back}
                 </p>
               </div>
-              <div className="shrink-0 rounded-2xl bg-indigo-50 px-3 py-2 text-center">
+              <button
+                type="button"
+                onClick={() => setBoxFilter(card.box)}
+                className={`shrink-0 rounded-2xl bg-indigo-50 px-3 py-2 text-center transition active:scale-[0.95] ${
+                  boxFilter === card.box ? 'ring-2 ring-indigo-500' : ''
+                }`}
+              >
                 <p className="text-[10px] font-black uppercase tracking-wide text-indigo-500">
                   Box
                 </p>
                 <p className="text-xl font-black text-indigo-700">
                   {card.box}
                 </p>
-              </div>
+              </button>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">

@@ -60,6 +60,8 @@ type FlashcardContextValue = FlashcardState & {
   allWordTypes: string[];
   answerCard: (cardId: string, remembered: boolean) => void;
   importDeck: (payload: ImportPayload) => { imported: number; updated: number };
+  addCard: (card: Omit<Flashcard, 'id'>) => void;
+  reverseAllCards: () => void;
   resetProgress: () => void;
   setDailyCardLimit: (limit: number) => void;
 };
@@ -162,6 +164,10 @@ function clampDailyLimit(limit: number) {
 
 function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
+}
+
+function generateId(): string {
+  return `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 function seedCards(cards: Flashcard[]): TrackedFlashcard[] {
@@ -325,6 +331,35 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const addCard = useCallback((cardData: Omit<Flashcard, 'id'>) => {
+    const newCard: Flashcard = {
+      id: generateId(),
+      ...cardData,
+    };
+    const trackedCard: TrackedFlashcard = {
+      ...newCard,
+      tags: newCard.tags ?? [],
+      box: 1,
+      nextReviewDate: nowIso(),
+      lastReviewed: null,
+    };
+    setState((current) => ({
+      ...current,
+      cards: [...current.cards, trackedCard],
+    }));
+  }, []);
+
+  const reverseAllCards = useCallback(() => {
+    setState((current) => ({
+      ...current,
+      cards: current.cards.map((card) => ({
+        ...card,
+        front: card.back,
+        back: card.front,
+      })),
+    }));
+  }, []);
+
   const importDeck = useCallback((payload: ImportPayload) => {
     validatePayload(payload);
     let imported = 0;
@@ -380,6 +415,8 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
       allWordTypes,
       answerCard,
       importDeck,
+      addCard,
+      reverseAllCards,
       resetProgress,
       setDailyCardLimit,
     }),
@@ -394,6 +431,8 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
       allWordTypes,
       answerCard,
       importDeck,
+      addCard,
+      reverseAllCards,
       resetProgress,
       setDailyCardLimit,
     ],
