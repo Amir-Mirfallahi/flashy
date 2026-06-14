@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout
         uses: pnpm/action-setup@v6
+        with:
+          version: 10
       - name: Detect package manager
         id: detect-package-manager
         run: |
