@@ -30,9 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10
+        uses: actions/checkout@v4
       - name: Detect package manager
         id: detect-package-manager
         run: |
@@ -41,10 +39,10 @@ jobs:
           echo "runner=pnpx --no-install" >> $GITHUB_OUTPUT
           exit 0
           
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
         with:
-          node-version: "20"
+          version: "10"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
       - name: Setup Pages
         uses: actions/configure-pages@v5
